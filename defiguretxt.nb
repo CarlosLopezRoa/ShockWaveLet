@@ -1,0 +1,197 @@
+thesisdir = 
+  "/Users/Poincare/Dropbox/Documentos/CFATA/8CLR/ServicioSocial/\
+Thesis";
+local = normalizar[obs["F", 10]];
+local1 = normalizar[obs["E", 10]];
+local2 = normalizar[obs["D", 10]];
+local = Table[{N[i/200], local[[i]]}, {i, 1, Length[local], 1}];
+local1 = Table[{N[i/131], local1[[i]]}, {i, 1, Length[local1], 1}];
+local2 = Table[{N[i/94], local2[[i]]}, {i, 1, Length[local2], 1}];
+rr1 = ListLinePlot[{local, local1, local2}, 
+  PlotLegends -> {"\!\(\*SubscriptBox[\(r\), \(200  K\)]\)", 
+    "\!\(\*SubscriptBox[\(r\), \(131  K\)]\)", 
+    "\!\(\*SubscriptBox[\(r\), \(94  K\)]\)"}, 
+  AxesLabel -> {"t[ms]", "r[u.a.]"}, PlotStyle -> Thick]
+SetDirectory[thesisdir]
+Export["rr1.eps", rr1]
+localarray = Table[treat[obs["B", i]], {i, 1, 15, 1}];
+rr2 = ListPointPlot3D[localarray, 
+  AxesLabel -> {"t[u.a.]", "E[u.a.]", "r[u.a.]"}, Boxed -> False, 
+  ColorFunction -> "BlueGreenYellow"(*,Filling->Bottom*)]
+rr2b = ListContourPlot[localarray, PlotLegends -> Automatic, 
+  ColorFunction -> "SunsetColors", 
+  FrameLabel -> {"t[u.a.]", "E[u.a.]"}]
+SetDirectory[thesisdir]
+Export["rr2.eps", rr2]
+Export["rr2b.pdf", rr2b]
+dial = {0, "200K", "94K", "131K", 200, 470, 335, 267, 402, 233, 301, 
+   368, 436, 216, 250, 284, 318, 351, 385, 419, 453};
+pre2 = Table[{pre[[i]], dial[[i]]}, {i, 1, 4}];
+pre1 = Table[{pre[[i]], dial[[i]]}, {i, 5, Length[pre]}];
+ordnum = {1, 10, 6, 11, 4, 12, 7, 13, 3, 14, 8, 15, 5, 16, 9, 17, 2};
+radigroup1 = 
+ GraphicsColumn[
+  Table[ListLinePlot[Table[fromcsv[p, i], {i, 10, 99, 1}], 
+    PlotLabel -> pre2[[Flatten[Position[pre, p]]]][[1]]], {p, 
+    pre[[2 ;; 4]]}], ImageSize -> {300, Automatic}]
+egroup = Table[
+   ListLinePlot[Table[fromcsv[p, i], {i, 10, 59, 1}], 
+    PlotLabel -> pre1[[Flatten[Position[pre, p] - 4]]][[1]], 
+    PlotRange -> All], {p, pre[[5 ;; Length[pre]]]}];
+radigroup2 = GraphicsGrid[{
+   Table[egroup[[i]], {i, ordnum[[1 ;; 3]]}],
+   Table[egroup[[i]], {i, ordnum[[4 ;; 6]]}],
+   Table[egroup[[i]], {i, ordnum[[7 ;; 9]]}],
+   Table[egroup[[i]], {i, ordnum[[10 ;; 12]]}],
+   Table[egroup[[i]], {i, ordnum[[13 ;; 15]]}],
+   Table[egroup[[i]], {i, ordnum[[16 ;; 17]]}]
+   }, ImageSize -> {500, Automatic}]
+SetDirectory[thesisdir]
+Export["radigroup1.eps", radigroup1]
+Export["radigroup2.eps", radigroup2]
+eaeadif = 
+  DeleteCases[
+   DeleteCases[
+    ParallelTable[
+     compar[fromcsv["EA", i], fromcsv["EA", j]], {i, 10, 59, 1}, {j, 
+      10, 59, 1}], 0., 2], Indeterminate, 2];
+eedif = DeleteCases[
+   DeleteCases[
+    ParallelTable[
+     compar[fromcsv["E", i], fromcsv["E", j]], {i, 10, 99, 1}, {j, 10,
+       99, 1}], 0., 2], Indeterminate, 2];
+ffdif = DeleteCases[
+   DeleteCases[
+    ParallelTable[
+     compar[fromcsv["F", i], fromcsv["F", j]], {i, 10, 99, 1}, {j, 10,
+       99, 1}], 0., 2], Indeterminate, 2];
+dddif = DeleteCases[
+   DeleteCases[
+    ParallelTable[
+     compar[fromcsv["F", i], fromcsv["F", j]], {i, 10, 99, 1}, {j, 10,
+       99, 1}], 0., 2], Indeterminate, 2];
+monodiftab = 
+  Table[DeleteDuplicates[
+    Sort[Flatten[dif]]], {dif, {eedif, ffdif, dddif}}];
+eediffx = 
+ GraphicsRow[
+  Table[ArrayPlot[Log[#] &@{ffdif, dddif, eedif}[[i]], 
+    PlotLegends -> Automatic, ColorFunction -> "SolarColors", 
+    PlotLabel -> pre[[i + 1]]], {i, 1, Length[monodiftab]}], 
+  ImageSize -> {800, Automatic}]
+eediff1 = 
+ Histogram[Log[10, #] &@monodiftab, ChartLayout -> "Stacked", 
+  ChartLegends -> {"E-E", "F-F", "D-D"}, 
+  AxesLabel -> {"Log[d(G_i,G_j)]", "F"}]
+in = AbsoluteTime[];
+alldiff = DeleteCases[
+   DeleteCases[
+    Table[
+     ParallelTable[
+      compar[
+       fromcsv[p, i], fromcsv[p, j]]
+      , {i, 10, 59, 1}, {j, 10, 59, 1}], {p, 
+      pre[[5 ;; Length[pre]]]}], 0., 3], Indeterminate, 3];
+out = AbsoluteTime[];
+out - in
+alldifftab = 
+  Table[DeleteDuplicates[Sort[Flatten[alldiff[[i]]]]], {i, 1, 
+    Length[alldiff]}];
+eediff2 = 
+ Histogram[Log[10, #] &@alldifftab, ChartLayout -> "Stacked", 
+  ChartLegends -> pre[[5 ;; Length[pre]]], 
+  AxesLabel -> {"Log[d(G_i,G_j)]", "F"}, ImageSize -> {400, Automatic}]
+arrayplotab = 
+  Table[ArrayPlot[Log[#] &@alldiff[[i]], PlotLegends -> Automatic, 
+    ColorFunction -> "SolarColors", PlotLabel -> pre[[i + 4]]], {i, 1,
+     Length[alldiff]}];
+eediff3 = GraphicsGrid[{
+   arrayplotab[[1 ;; 4]],
+   arrayplotab[[5 ;; 8]],
+   arrayplotab[[9 ;; 12]],
+   arrayplotab[[13 ;; 16]]}, ImageSize -> {800, Automatic}
+  ]
+SetDirectory[thesisdir]
+Export["eediff1.pdf", eediff1]
+Export["eediff2.pdf", eediff2]
+Export["eediff3.pdf", eediff3]
+Export["eediffx.pdf", eediffx]
+in = AbsoluteTime[];
+epars = ParallelTable[paraest[interpolar[fromcsv["E", i]]]; 
+   pars, {i, 10, 99}];
+expars = ParallelTable[paraest[interpolar[fromcsv[p, i]]]; 
+   pars, {i, 10, 59}, {p, pre[[5 ;; Length[pre]]]}];
+out = AbsoluteTime[];
+out - in
+SetDirectory[NotebookDirectory[]]
+DumpSave["epars.mx", epars];
+SetDirectory[NotebookDirectory[]]
+<< "epars.mx"
+parsestfig1 = DistributionChart[{
+   Flatten[expars[[All, All, 1]]],
+   Select[Flatten[epars[[All, 1]]], NumberQ[#] &]
+   }, BarOrigin -> Left, ChartLabels -> {"EA-ER", "E"}, 
+  ChartStyle -> "NeonColors"]
+var1 = DeleteCases[Sort[Select[epars[[All, 2]], NumberQ]], 0.];
+var2 = Sort[Flatten[expars[[All, All, 2]]]];
+parsestfig2 = Histogram[{
+   var2,
+   var1
+   }, ChartLegends -> {"EA-ER", "E"}, ChartStyle -> "NeonColors", 
+  ChartLayout -> "Stacked"]
+var1 = Select[epars[[All, 3]], NumberQ];
+var2 = Flatten[expars[[All, All, 3]]];
+var3 = Select[epars[[All, 4]], NumberQ];
+var4 = Select[Flatten[expars[[All, All, 4]]], # < 900 &];
+parsestfig3 = 
+ DistributionChart[
+  Reverse@{Sort[var1], Sort[var2], Sort[var3], Sort[var4]}, 
+  BarOrigin -> Left, ChartStyle -> "NeonColors", 
+  ChartLabels -> 
+   Reverse@{"\!\(\*SubscriptBox[\(F\), \(8\)]\)E", 
+     "\!\(\*SubscriptBox[\(F\), \(8\)]\)EA-EX", 
+     "\!\(\*SubscriptBox[\(F\), \(9\)]\)E", 
+     "\!\(\*SubscriptBox[\(F\), \(10\)]\)EA-EX"}]
+parsestfig4 = DistributionChart[
+  Reverse@{
+    FindClusters[
+     Select[Flatten[Thread[Transpose[epars[[All, 5]]]][[All, 1]]], 
+      NumberQ[#] &], 6, Method -> "Agglomerate"],
+    FindClusters[
+     Select[Flatten[Thread[Transpose[epars[[All, 6]]]][[All, 1]]], 
+      NumberQ[#] &], 6, Method -> "Agglomerate"],
+    FindClusters[
+     Select[Flatten[
+       Thread[Transpose[expars[[All, All, 5]]]][[All, 1]]], 
+      NumberQ[#] &], 6, Method -> "Agglomerate"],
+    FindClusters[
+     Select[Flatten[
+       Thread[Transpose[expars[[All, All, 6]]]][[All, 1]]], 
+      NumberQ[#] &], 6, Method -> "Agglomerate"]
+    }, BarOrigin -> Left, ChartLayout -> "Stacked", 
+  ChartLegends -> {"\!\(\*SubscriptBox[\(P\), \(8\)]\)E", 
+    "\!\(\*SubscriptBox[\(P\), \(9\)]\)E", 
+    "\!\(\*SubscriptBox[\(P\), \(8\)]\)EA-ER", 
+    "\!\(\*SubscriptBox[\(P\), \(9\)]\)EA-ER"}]
+SetDirectory[thesisdir]
+Export["parsestfig1.eps", parsestfig1]
+Export["parsestfig2.eps", parsestfig2]
+Export["parsestfig3.eps", parsestfig3]
+Export["parsestfig4.pdf", parsestfig4]
+(*Export all treat to .mx*)
+in = AbsoluteTime[];
+ParallelTable[
+  tocsv[treat[obs[p, i]]], {i, 10, 99}, {p, pre[[2 ;; 4]]}];
+ParallelTable[
+  tocsv[treat[obs[p, i]]], {i, 10, 59}, {p, 
+   pre[[5 ;; Length[pre]]]}];
+out = AbsoluteTime[];
+Needs["ErrorBarPlots`"]
+r1 = Show[{
+   BarChart[{Mean[a50], Mean[a100], Mean[a125]}, 
+    ChartLabels -> {50, 100, 125}], 
+   ErrorListPlot[
+    Table[{Mean[i], 
+      StandardDeviation[i]/2}, {i, {a50, a100, a125}}]]}, 
+  PlotLabel -> ""]
+Export["r1.eps", r1]

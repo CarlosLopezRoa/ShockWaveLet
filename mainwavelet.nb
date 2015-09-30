@@ -1,0 +1,117 @@
+(*Constantes*)
+pre = {"B", "F", "D", "E", "EA", "EC", "ED", "EE", "EF", "EG", "EH", 
+   "EI", "EJ", "EK", "EL", "EM", "EN", "EO", "EP", "EQ", "ER"};
+root = "/Users/Carlos/Desktop/Dropbox"; folder1 = "MainWavelet"; \
+name1 = "r";
+If[$MachineName == "Poincare" || $MachineName == "poincare", 
+  root = "/Users/Poincare/Dropbox/", 
+  root = "/Users/Carlos/Desktop/Dropbox"];
+(*Funciones*)
+NoisyExtremaFinder = Function[{valueList, aroundRange},
+   timeList = Range[Length[valueList]];
+   extremaPosition = 
+    Flatten@Position[
+       Map[#, Partition[valueList, 2*aroundRange + 1, 
+          1, {-(1 + aroundRange), 1 + aroundRange}, {}]] - valueList, 
+       0.] &;
+   extremaPoints = 
+    Transpose@{timeList[[#]], valueList[[#]]} &@extremaPosition[#] &;
+   {extremaPoints[Min], extremaPoints[Max]}];
+NoisyThreshPeaks[ei_, vecinity_, tresh_] := (
+   ntp = DeleteCases[
+     Table[
+      Select[
+       NoisyExtremaFinder[ei, vecinity][[i]], 
+       Abs[#[[2]]] > Abs[tresh*Max[ei]] || 
+         Abs[#[[2]]] > Abs[tresh*Min[ei]] &]
+      , {i, 1, Length[NoisyExtremaFinder[ei, vecinity]]}], {}];
+   Return[ntp]
+   );
+FreqId[oo_] := (
+  pper = N[
+    Length[oo]/(Position[Abs[Fourier[oo]], Max[Abs[Fourier[oo]]]][[1, 
+        1]] - 2 + 
+       2 (Position[
+             Abs[Fourier[
+               oo Exp[2 Pi I (Position[Abs[Fourier[oo]], 
+                    Max[Abs[Fourier[oo]]]][[1, 1]] - 2) N[
+                    Range[0, Length[oo] - 1]]/Length[oo]], 
+               FourierParameters -> {0, 2/Length[oo]}]], 
+             Max[Abs[
+               Fourier[
+                oo Exp[2 Pi I (Position[Abs[Fourier[oo]], 
+                    Max[Abs[Fourier[oo]]]][[1, 1]] - 2) N[
+                    Range[0, Length[oo] - 1]]/Length[oo]], 
+                FourierParameters -> {0, 2/Length[oo]}]]]][[1, 1]] - 
+           1)/Length[oo])];
+  Return[pper]
+  )
+obs[prefi_, nu_] := (
+   SetDirectory[FileNameJoin[{root, folder1}]];
+   prefix = prefi;
+   num = nu;
+   SetDirectory[FileNameJoin[{root, folder1, prefix}]];
+   rm = Flatten[
+     Import[StringJoin[name1, prefix, ToString[num], ".csv"]]];
+   SetDirectory[FileNameJoin[{root, folder1}]];
+   Return[rm]
+   );
+filtrar[obsi_] := (
+   rf = InverseWaveletTransform[
+     WaveletThreshold[
+      StationaryWaveletTransform[obsi, SymletWavelet[], 3], 
+      "VisuShrink"]];
+   Return[rf]
+   );
+interpolar[obsi_] := (
+   ri = interpolar[obsi, .1];
+   Return[ri]
+   );
+interpolar[obsi_, k_] := (
+   ri = Table[ListInterpolation[obsi][i], {i, 1, Length[obsi], k}];
+   Return[ri]
+   );
+normalizar[obsi_] := (
+   rn = obsi/obsi[[1]];
+   Return[rn]
+   );
+tocsv[obsi_] := (
+   SetDirectory[FileNameJoin[{root, folder1, "fil"}]];
+   obslocal = obsi;
+   DumpSave[StringJoin["obs", ToString[prefix], ToString[num], ".mx"],
+     obslocal];
+   SetDirectory[FileNameJoin[{root, folder1, "fil"}]];
+   );
+fromcsv[prefi_, nu_] := (
+   SetDirectory[FileNameJoin[{root, folder1, "fil"}]];
+   Get[StringJoin["obs", ToString[prefi], ToString[nu], ".mx"]];
+   Return[obslocal];
+   );
+treat[obsi_] := (
+   trat = normalizar[filtrar[obsi]];
+   Return[trat]
+   );
+paraest[obsi_] := (
+   paraest[obsi, SymletWavelet[], 12]
+   );
+paraest[obsi_, wave_] := (
+   paraest[obsi, wave, 12]
+   );
+paraest[obsi_, wave_, level_] := (
+   swt = StationaryWaveletTransform[obsi, wave, level];
+   deltashot = 
+    NoisyThreshPeaks[swt[All, "Values"][[2*6]], 10, .3][[2]][[All, 1]];
+   edist = compar[obsi, interpolar[fromcsv["E", 10]]];
+   f1 = FreqId[swt[All, "Values"][[2*8]]];
+   peakf1 = NoisyThreshPeaks[swt[All, "Values"][[2*8]], 10, .3][[2]];
+   f2 = FreqId[swt[All, "Values"][[2*9]]];
+   peakf2 = NoisyThreshPeaks[swt[All, "Values"][[2*9]], 10, .3][[2]];
+   pars = {deltashot, edist, f1, f2, peakf1, peakf2};
+   Return[swt]
+   );
+compar[o1_, o2_] := (
+   Return[
+    Abs[Norm[ListConvolve[o1, o2, {1, 1}]] - 
+      1/2 (Norm[ListConvolve[o1, o1, {1, 1}]] + 
+         Norm[ListConvolve[o2, o2, {1, 1}]])]]
+   );
